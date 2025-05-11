@@ -4,39 +4,35 @@
 
 #define RST_PIN 9
 #define SS_PIN 10
-MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
+MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 const int BALANCE_SIZE = 4;
 
-// Get EEPROM address by hashing UID (simple, not secure but enough for demo)
 int getAddressForUID(byte *uid, byte uidSize) {
   int address = 0;
   for (byte i = 0; i < uidSize; i++) {
     address += uid[i];
   }
-  address = address % (EEPROM.length() - BALANCE_SIZE);  // Prevent overflow
+  address = address % (EEPROM.length() - BALANCE_SIZE);
   return address;
 }
 
-// Read balance from EEPROM
 int readBalance(int address) {
   int balance = 0;
   EEPROM.get(address, balance);
   return balance;
 }
 
-// Write balance to EEPROM
 void writeBalance(int address, int balance) {
   EEPROM.put(address, balance);
 }
 
-// Read command from Serial until newline
 String readSerialCommand() {
   String input = "";
   while (true) {
     if (Serial.available()) {
       char c = Serial.read();
-      if (c == '\n') break;  // Wait for newline
+      if (c == '\n') break;  
       input += c;
     }
   }
@@ -44,7 +40,6 @@ String readSerialCommand() {
   return input;
 }
 
-// Handle the command logic
 void processCommand(String command, int &balance) {
   command.trim();
   command.toLowerCase();
@@ -83,8 +78,8 @@ void processCommand(String command, int &balance) {
 void setup() {
   Serial.begin(9600);
   while (!Serial)
-    ;           // Wait for Serial port (for Leonardo or similar)
-  delay(2000);  // Give Serial Monitor time to open
+    ;           
+  delay(2000); 
 
   SPI.begin();
   mfrc522.PCD_Init();
@@ -93,12 +88,10 @@ void setup() {
 }
 
 void loop() {
-  // Wait for new card
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
     return;
   }
 
-  // Show UID
   byte *uid = mfrc522.uid.uidByte;
   byte uidSize = mfrc522.uid.size;
 
@@ -108,7 +101,6 @@ void loop() {
   }
   Serial.println();
 
-  // Get address and balance
   int address = getAddressForUID(uid, uidSize);
   int balance = readBalance(address);
 
@@ -117,27 +109,18 @@ void loop() {
   Serial.println(balance);
   Serial.println("==========================");
 
-  // Ask for command
   Serial.println("✍️ Enter command (e.g. add 100 or pay 50):");
-
-  // Wait for and process serial input
-  while (!Serial.available()) {
-    // wait
-  }
-
   String command = readSerialCommand();
   processCommand(command, balance);
 
-  // Save updated balance
   writeBalance(address, balance);
 
   Serial.print("💾 New Balance: ");
   Serial.println(balance);
   Serial.println("📢 Remove card and scan again to continue.\n");
 
-  // Halt RFID reading
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 
-  delay(1500);  // Cooldown
+  delay(1500); 
 }

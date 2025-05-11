@@ -1,2 +1,4 @@
 /.venv
 /.idea
+config.bat
+node_modules
